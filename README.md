@@ -60,16 +60,16 @@ source ~/.zshrc  # or ~/.bashrc if you use bash
 
 ```bash
 # Pull a model
-docker model pull ai/llama3.2:3b-instruct-q4_K_M
+docker model pull ai/smollm2
 
 # List installed models
 docker model ls
 
 # Run inference (interactive)
-docker model run ai/llama3.2:3b-instruct-q4_K_M
+docker model run ai/smollm2
 
 # Run inference (single prompt)
-docker model run ai/llama3.2:3b-instruct-q4_K_M "Explain quantum computing in simple terms"
+docker model run ai/smollm2 "Explain quantum computing in simple terms"
 ```
 
 ## Usage Examples
@@ -78,16 +78,16 @@ docker model run ai/llama3.2:3b-instruct-q4_K_M "Explain quantum computing in si
 
 ```bash
 # Interactive chat
-docker model run ai/llama3.2:3b-instruct-q4_K_M
+docker model run ai/smollm2
 
 # Single prompt
-docker model run ai/llama3.2:3b-instruct-q4_K_M "Write a haiku about code"
+docker model run ai/smollm2 "Write a haiku about code"
 
 # List models
 docker model ls
 
 # Remove a model
-docker model rm ai/llama3.2:3b-instruct-q4_K_M
+docker model rm ai/smollm2
 ```
 
 ### OpenAI-Compatible API
@@ -96,7 +96,7 @@ docker model rm ai/llama3.2:3b-instruct-q4_K_M
 curl http://localhost:12434/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "ai/llama3.2:3b-instruct-q4_K_M",
+    "model": "ai/smollm2",
     "messages": [{"role": "user", "content": "Hello!"}]
   }'
 ```
@@ -119,7 +119,7 @@ client = openai.OpenAI(
 )
 
 response = client.chat.completions.create(
-    model="ai/llama3.2:3b-instruct-q4_K_M",
+    model="ai/smollm2",
     messages=[{"role": "user", "content": "Hello!"}]
 )
 

@@ -25,8 +25,10 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-BINARY_URL="https://github.com/Liquescent-Development/model-runner/releases/download/latest-86796e4fe88d883091e2d5c4b6ed5cc522565a90/model-runner-darwin-arm64"
+BINARY_URL="https://github.com/Liquescent-Development/model-runner/releases/download/latest-95b8676ee4c0db0a1f353b858b06447d64c147a2/model-runner-darwin-arm64"
+CLI_PLUGIN_URL="https://github.com/Liquescent-Development/model-runner/releases/download/cli-latest-f0dae0539c6b150c1ac5a314f7f2bf5dc19e47b9/docker-model"
 BIN_DIR="$HOME/.local/bin"
+CLI_PLUGINS_DIR="$HOME/.docker/cli-plugins"
 LAUNCH_AGENT_LABEL="com.liquescent.model-runner"
 LAUNCH_AGENT_PLIST="$HOME/Library/LaunchAgents/${LAUNCH_AGENT_LABEL}.plist"
 MODEL_RUNNER_PORT=12434
@@ -85,20 +87,12 @@ install_dependencies() {
         log_info "llama.cpp already installed"
     fi
 
-    # Install Docker CLI (includes docker-model plugin)
+    # Install Docker CLI
     if ! command -v docker &> /dev/null; then
         log_info "Installing Docker CLI..."
         brew install docker
     else
         log_info "Docker CLI already installed ($(docker --version))"
-    fi
-
-    # Verify docker model plugin is available
-    if docker model version &> /dev/null 2>&1 || docker model --help &> /dev/null 2>&1; then
-        log_info "✓ docker model plugin is available"
-    else
-        log_warn "docker model plugin not found. You may need to update Docker CLI:"
-        log_warn "  brew upgrade docker"
     fi
 }
 
@@ -118,12 +112,30 @@ download_model_runner() {
         log_error "Please check your internet connection and try again"
         exit 1
     fi
+}
 
-    # Verify the binary works
-    if "$BIN_DIR/model-runner" --version &> /dev/null || "$BIN_DIR/model-runner" --help &> /dev/null; then
-        log_info "✓ Binary verified successfully"
+install_docker_model_plugin() {
+    log_info "Installing docker model CLI plugin..."
+
+    # Create CLI plugins directory
+    mkdir -p "$CLI_PLUGINS_DIR"
+
+    # Download the plugin
+    log_info "Downloading from $CLI_PLUGIN_URL"
+    if curl -L -f -o "$CLI_PLUGINS_DIR/docker-model" "$CLI_PLUGIN_URL"; then
+        chmod +x "$CLI_PLUGINS_DIR/docker-model"
+        log_info "✓ docker model plugin installed to $CLI_PLUGINS_DIR/docker-model"
     else
-        log_warn "Binary verification returned non-zero exit code, but this may be expected"
+        log_error "Failed to download docker model plugin"
+        log_error "Please check your internet connection and try again"
+        exit 1
+    fi
+
+    # Verify installation
+    if docker model --help &> /dev/null; then
+        log_info "✓ docker model plugin is working!"
+    else
+        log_warn "docker model plugin installed but verification failed"
     fi
 }
 
@@ -154,7 +166,13 @@ setup_launch_daemon() {
         <string>$MODEL_RUNNER_PORT</string>
         <key>LLAMA_SERVER_PATH</key>
         <string>/opt/homebrew/bin</string>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>HOME</key>
+        <string>$HOME</string>
     </dict>
+    <key>WorkingDirectory</key>
+    <string>$HOME</string>
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>
@@ -190,13 +208,13 @@ verify_gpu_support() {
     # Wait for service to be ready
     sleep 2
 
-    # Check the logs for GPU detection
-    if grep -q "gpuSupport=true" "$HOME/Library/Logs/model-runner.log"; then
+    # Check the error log for GPU detection (model-runner logs to stderr)
+    if grep -q "gpuSupport=true" "$HOME/Library/Logs/model-runner.err"; then
         log_info "✓ GPU support detected!"
         return 0
     else
         log_warn "GPU support not detected. Check logs:"
-        log_warn "  tail -f $HOME/Library/Logs/model-runner.log"
+        log_warn "  tail -f $HOME/Library/Logs/model-runner.err"
         return 1
     fi
 }
@@ -287,16 +305,16 @@ Docker Model Runner with GPU support is now running on your system!
 📋 Quick Start Guide:
 
 1. Pull a model:
-   docker model pull ai/llama3.2:3b-instruct-q4_K_M
+   docker model pull ai/smollm2
 
 2. List models:
    docker model ls
 
 3. Run inference (single prompt):
-   docker model run ai/llama3.2:3b-instruct-q4_K_M "Hello, how are you?"
+   docker model run ai/smollm2 "Hello, how are you?"
 
 4. Run inference (interactive):
-   docker model run ai/llama3.2:3b-instruct-q4_K_M
+   docker model run ai/smollm2
 
 5. Use in containers:
    docker run -e OPENAI_API_BASE=http://host.lima.internal:12434/v1 your-app
@@ -305,7 +323,7 @@ Docker Model Runner with GPU support is now running on your system!
    curl http://localhost:12434/v1/chat/completions \
      -H "Content-Type: application/json" \
      -d '{
-       "model": "ai/llama3.2:3b-instruct-q4_K_M",
+       "model": "ai/smollm2",
        "messages": [{"role": "user", "content": "Hello!"}]
      }'
 
@@ -353,6 +371,7 @@ main() {
     check_prerequisites
     install_dependencies
     download_model_runner
+    install_docker_model_plugin
     setup_launch_daemon
     verify_gpu_support
     test_service

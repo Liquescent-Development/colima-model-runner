@@ -26,7 +26,7 @@ The setup creates a complete GPU-accelerated AI inference stack:
 The script downloads a pre-built model-runner binary with Metal support:
 ```bash
 curl -L -f -o ~/.local/bin/model-runner \
-  https://github.com/Liquescent-Development/model-runner/releases/download/latest-86796e4fe88d883091e2d5c4b6ed5cc522565a90/model-runner-darwin-arm64
+  https://github.com/Liquescent-Development/model-runner/releases/download/latest-95b8676ee4c0db0a1f353b858b06447d64c147a2/model-runner-darwin-arm64
 chmod +x ~/.local/bin/model-runner
 ```
 
@@ -68,8 +68,8 @@ curl -sf http://localhost:12434/models
 ```bash
 export MODEL_RUNNER_HOST="http://localhost:12434"
 docker model ls
-docker model pull ai/llama3.2:3b-instruct-q4_K_M
-docker model run ai/llama3.2:3b-instruct-q4_K_M "Hello, how are you?"
+docker model pull ai/smollm2
+docker model run ai/smollm2 "Hello, how are you?"
 ```
 
 **GPU Verification:**
