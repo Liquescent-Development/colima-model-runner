@@ -10,8 +10,8 @@
 # - Colima installed (brew install colima)
 #
 # What this script does:
-# 1. Installs dependencies (llama.cpp, Go, Docker CLI)
-# 2. Builds model-runner from forked repo with GPU fixes
+# 1. Installs dependencies (llama.cpp, Docker CLI)
+# 2. Downloads pre-built model-runner binary with GPU support
 # 3. Sets up model-runner as a macOS service (launchd)
 # 4. Configures macOS Docker CLI to use the host service
 # 5. Tests the setup
@@ -25,8 +25,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-FORK_REPO="https://github.com/Liquescent-Development/model-runner"
-INSTALL_DIR="$HOME/.local/share/model-runner"
+BINARY_URL="https://github.com/Liquescent-Development/model-runner/releases/download/latest-86796e4fe88d883091e2d5c4b6ed5cc522565a90/model-runner-darwin-arm64"
 BIN_DIR="$HOME/.local/bin"
 LAUNCH_AGENT_LABEL="com.liquescent.model-runner"
 LAUNCH_AGENT_PLIST="$HOME/Library/LaunchAgents/${LAUNCH_AGENT_LABEL}.plist"
@@ -86,14 +85,6 @@ install_dependencies() {
         log_info "llama.cpp already installed"
     fi
 
-    # Install Go
-    if ! command -v go &> /dev/null; then
-        log_info "Installing Go..."
-        brew install go
-    else
-        log_info "Go already installed ($(go version))"
-    fi
-
     # Install Docker CLI (includes docker-model plugin)
     if ! command -v docker &> /dev/null; then
         log_info "Installing Docker CLI..."
@@ -109,43 +100,31 @@ install_dependencies() {
         log_warn "docker model plugin not found. You may need to update Docker CLI:"
         log_warn "  brew upgrade docker"
     fi
-
-    # Ensure Xcode Command Line Tools are installed (for CGO)
-    if ! xcode-select -p &> /dev/null; then
-        log_info "Installing Xcode Command Line Tools..."
-        xcode-select --install
-        log_warn "Please complete the Xcode CLT installation and run this script again"
-        exit 0
-    fi
 }
 
-build_model_runner() {
-    log_info "Building model-runner from forked repository..."
+download_model_runner() {
+    log_info "Downloading model-runner binary..."
 
-    # Create install directory
-    mkdir -p "$INSTALL_DIR"
+    # Create bin directory
+    mkdir -p "$BIN_DIR"
 
-    # Clone or update repository
-    if [ -d "$INSTALL_DIR/repo" ]; then
-        log_info "Updating existing repository..."
-        cd "$INSTALL_DIR/repo"
-        git pull
+    # Download the binary
+    log_info "Downloading from $BINARY_URL"
+    if curl -L -f -o "$BIN_DIR/model-runner" "$BINARY_URL"; then
+        chmod +x "$BIN_DIR/model-runner"
+        log_info "✓ model-runner downloaded to $BIN_DIR/model-runner"
     else
-        log_info "Cloning repository..."
-        git clone "$FORK_REPO" "$INSTALL_DIR/repo"
-        cd "$INSTALL_DIR/repo"
+        log_error "Failed to download model-runner binary"
+        log_error "Please check your internet connection and try again"
+        exit 1
     fi
 
-    # Build with CGO enabled (for Metal support)
-    log_info "Building model-runner binary..."
-    CGO_ENABLED=1 make build
-
-    # Install binary
-    mkdir -p "$BIN_DIR"
-    cp model-runner "$BIN_DIR/model-runner"
-    chmod +x "$BIN_DIR/model-runner"
-
-    log_info "model-runner installed to $BIN_DIR/model-runner"
+    # Verify the binary works
+    if "$BIN_DIR/model-runner" --version &> /dev/null || "$BIN_DIR/model-runner" --help &> /dev/null; then
+        log_info "✓ Binary verified successfully"
+    else
+        log_warn "Binary verification returned non-zero exit code, but this may be expected"
+    fi
 }
 
 setup_launch_daemon() {
@@ -373,7 +352,7 @@ main() {
 
     check_prerequisites
     install_dependencies
-    build_model_runner
+    download_model_runner
     setup_launch_daemon
     verify_gpu_support
     test_service

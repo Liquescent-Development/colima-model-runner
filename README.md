@@ -44,8 +44,8 @@ cd colima-model-runner
 ```
 
 The script will:
-- Install dependencies (llama.cpp, Go, Docker CLI)
-- Build model-runner from our [GPU-optimized fork](https://github.com/Liquescent-Development/model-runner)
+- Install dependencies (llama.cpp, Docker CLI)
+- Download pre-built model-runner binary from our [GPU-optimized fork](https://github.com/Liquescent-Development/model-runner)
 - Configure model-runner as a macOS LaunchAgent service
 - Set up Colima for Docker support
 - Test GPU support and connectivity

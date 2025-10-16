@@ -21,13 +21,16 @@ The setup creates a complete GPU-accelerated AI inference stack:
 4. **Docker Integration**: Colima provides Docker daemon while model-runner runs on the host for GPU access
 5. **API**: OpenAI-compatible endpoint at `http://localhost:12434`
 
-## Build Process
+## Installation Process
 
-The script builds model-runner with CGO enabled for Metal support:
+The script downloads a pre-built model-runner binary with Metal support:
 ```bash
-cd ~/.local/share/model-runner/repo
-CGO_ENABLED=1 make build
+curl -L -f -o ~/.local/bin/model-runner \
+  https://github.com/Liquescent-Development/model-runner/releases/download/latest-86796e4fe88d883091e2d5c4b6ed5cc522565a90/model-runner-darwin-arm64
+chmod +x ~/.local/bin/model-runner
 ```
+
+This eliminates the need for Go, git, and build tools. The binary is built with CGO enabled for Metal GPU acceleration.
 
 ## Service Management
 
@@ -82,6 +85,8 @@ grep "gpuSupport=true" ~/Library/Logs/model-runner.log
 - Homebrew installed
 - Colima installed (`brew install colima`)
 
+Note: Go, git, and Xcode Command Line Tools are no longer required thanks to the pre-built binary.
+
 **Execute:**
 ```bash
 ./setup-colima-gpu-model-runner.sh
@@ -103,14 +108,13 @@ source ~/.zshrc  # or ~/.bashrc
 **Script requires:**
 - Apple Silicon architecture check (`uname -m` == `arm64`)
 - macOS OS check (`$OSTYPE` == `darwin*`)
-- Xcode Command Line Tools for CGO compilation
 - Script runs with `set -e` (fail-fast behavior)
 
 **If service fails to start:**
 1. Check LaunchAgent logs
 2. Verify binary exists at `~/.local/bin/model-runner`
-3. Ensure Xcode CLT installed: `xcode-select -p`
-4. Verify Go installation for building: `go version`
+3. Ensure binary has execute permissions: `chmod +x ~/.local/bin/model-runner`
+4. Test binary directly: `~/.local/bin/model-runner --help`
 
 ## Integration with Containers
 
